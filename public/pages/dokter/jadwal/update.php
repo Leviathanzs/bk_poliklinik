@@ -13,33 +13,75 @@ if($akses != 'dokter') {
 $id = $nama = $alamat = $no_hp = $poli = "";
 $updateMessage = "";
 
-// Fetch existing data if ID is present in the URL
-if (isset($_GET['id']) && is_numeric($_GET['id'])) {
-    $id = $_GET['id'];
+$id = isset($_GET['id']) ? $_GET['id'] : null;
+$row = [];
+
+if ($id) {
     $sql = "SELECT * FROM jadwal_periksa WHERE id = :id";
     $stmt = $conn->prepare($sql);
     $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($row) {
-        $id_dokter = $row['id_dokter'];
-        $hari = $row['hari'];
-        $jadwal_mulai = $row['jadwal_mulai'];
-        $jadwal_selesai = $row['jadwal_selesai'];
-    } else {
-        $updateMessage = "No record found for ID: " . $id;
-    }
 }
 
-// Handle form submission
+// If no record found, handle the situation
+if (!$row) {
+    die("No record found for ID: " . $id);
+}
+
+// Assign variables from the fetched row
+$id_dokter = $row['id_dokter'];
+$hari = $row['hari'];
+$jadwal_mulai = $row['jadwal_mulai'];
+$jadwal_selesai = $row['jadwal_selesai'];
+$aktif = $row['aktif'];
+
+
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $id = $_POST['id']; 
     $hari = htmlspecialchars($_POST['hari']);
     $jadwal_mulai = htmlspecialchars($_POST['jadwal_mulai']);
     $jadwal_selesai = htmlspecialchars($_POST['jadwal_selesai']);
+    $aktif = htmlspecialchars($_POST['aktif']);
     
-    // Call the function to update dokter
-    $updateMessage = updateJadwal ($id, $hari, $jadwal_mulai, $jadwal_selesai, $conn);
+    try {
+        $conn->beginTransaction();
+
+        // Update the jadwal_periksa record
+        $sqlUpdate = "UPDATE jadwal_periksa SET hari = :hari, jadwal_mulai = :jadwal_mulai, jadwal_selesai = :jadwal_selesai, aktif = :aktif WHERE id = :id";
+        $stmtUpdate = $conn->prepare($sqlUpdate);
+        $stmtUpdate->execute([
+            'hari' => $hari,
+            'jadwal_mulai' => $jadwal_mulai,
+            'jadwal_selesai' => $jadwal_selesai,
+            'aktif' => $aktif,
+            'id' => $id
+        ]);
+
+        // Set aktif = '0' for all other rows with the same id_dokter except the updated one
+        $sqlSetInactive = "
+            UPDATE jadwal_periksa
+            SET aktif = CASE 
+                            WHEN id = :id THEN :aktif
+                            ELSE '0'
+                         END
+            WHERE id_dokter = :id_dokter
+        ";
+
+        $stmtSetInactive = $conn->prepare($sqlSetInactive);
+        $stmtSetInactive->execute([
+            'id' => $id,
+            'aktif' => $aktif,
+            'id_dokter' => $id_dokter
+        ]);
+
+        $conn->commit();
+        $updateMessage = "Record updated successfully";
+    } catch (PDOException $e) {
+        $conn->rollback();
+        $updateMessage = "Error updating record: " . $e->getMessage();
+    }
 
     if ($updateMessage === "Record updated successfully") {
         $_SESSION['update_success'] = true;
@@ -47,6 +89,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
     }
 }
+
 
 // Fetch current 'hari' value for the dokter
 $currentHariStmt = $conn->prepare('SELECT hari FROM jadwal_periksa WHERE id_dokter = :dokter_id');
@@ -56,6 +99,15 @@ $currentHariRow = $currentHariStmt->fetch(PDO::FETCH_ASSOC);
 $currentHari = $currentHariRow['hari'];
 
 $hariOptions = getEnumValues($conn, 'jadwal_periksa', 'hari');
+
+// Fetch current 'hari' value for the dokter
+$currentAktifStmt = $conn->prepare('SELECT aktif FROM jadwal_periksa WHERE id_dokter = :dokter_id');
+$currentAktifStmt->bindParam(':dokter_id', $id_dokter);
+$currentAktifStmt->execute();
+$currentAktifRow = $currentAktifStmt->fetch(PDO::FETCH_ASSOC);
+$currentAktif = $currentAktifRow['aktif'] == "1";
+
+$aktifOptions = getEnumValues($conn, 'jadwal_periksa', 'aktif');
 ?>
 
 <!DOCTYPE html>
@@ -141,6 +193,23 @@ $hariOptions = getEnumValues($conn, 'jadwal_periksa', 'hari');
             <div class="mb-4 flex flex-col">
                 <label for="jadwal_selesai" class="block text-gray-700 font-bold mb-2 text-xl">Jam Selesai</label>
                 <input type="text" id="jadwal_selesai" name="jadwal_selesai" class="form-input rounded-md border border-blue-900 p-2" value="<?php echo $jadwal_selesai ?>">
+            </div>
+            <div class="mb-4 flex flex-col">
+                <label for="aktif" class="block text-gray-700 font-bold mb-2 text-xl">Status</label>
+                <select name="aktif" id="aktif" class="form-control rounded-md border border-blue-900 p-2">
+                <?php
+                        // Loop through each enum value and create <option> element
+                        foreach ($aktifOptions as $aktif) {
+                            $selected = ($aktif == $currentAktif) ? "selected" : "";
+                            if ($aktif == '1') {
+                                echo "<option value='$aktif' $selected>Aktif</option>";
+                            } else {
+                                echo "<option value='$aktif' $selected>Tidak Aktif</option>";
+                            }
+                           
+                        }
+                    ?>
+                </select>
             </div>
             <div class="button-container">
                 <button type="submit" class="submit-button text-white font-bold py-2 px-4 rounded">

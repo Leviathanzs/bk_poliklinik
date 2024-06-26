@@ -149,6 +149,7 @@ $hariOptions = getEnumValues($conn, 'jadwal_periksa', 'hari');
                             <th class="px-4 py-2">Hari</th>
                             <th class="px-4 py-2">Jam Mulai</th>
                             <th class="px-4 py-2">Jam Selesai</th>
+                            <th class="px-4 py-2">Status</th>
                             <th class="px-4 py-2">Aksi</th>
                         </tr>
                     </thead>
@@ -159,7 +160,8 @@ $hariOptions = getEnumValues($conn, 'jadwal_periksa', 'hari');
                                     b.hari as hari, 
                                     b.id as id_jp,
                                     b.jadwal_mulai as jam_mulai,
-                                    b.jadwal_selesai as jam_selesai
+                                    b.jadwal_selesai as jam_selesai,
+                                    b.aktif as aktif
                               FROM dokter as a
                               INNER JOIN jadwal_periksa as b
                               ON a.id = b.id_dokter
@@ -179,12 +181,22 @@ $hariOptions = getEnumValues($conn, 'jadwal_periksa', 'hari');
                                 <td class='px-4 py-2'> <?= $jd['hari']; ?></td>
                                 <td class='px-4 py-2'> <?= $jd['jam_mulai']; ?></td>
                                 <td class='px-4 py-2'> <?= $jd['jam_selesai'];  ?></td>
+                                <td class='px-4 py-2'>
+                                    <?php
+                                    // Define text based on $jd['aktif'] value
+                                    if ($jd['aktif'] == '1') {
+                                        echo '<span class="submit-button">Aktif</span>';
+                                    } else {
+                                        echo '<span class="reset-button">Tidak Aktif</span>';
+                                    }
+                                    ?>
+                                </td>
                                 <td class='px-4 py-2 flex justify-center w-full space-x-4'>
                                         <a class='ubah-button text-white font-bold rounded p-2' href='<?php echo str_replace("/jadwal-periksa.php", "", $_SERVER["PHP_SELF"]) . "../jadwal/update.php?id=" . $jd['id_jp']; ?>'>Ubah</a>
-                                        <form action='' method='GET' class=''>
+                                        <!-- <form action='' method='GET' class=''>
                                             <input type='hidden' name='id' value='<?= $jd['id_jp'];  ?>'>
                                             <button type='submit' name='delete' class='reset-button text-white font-bold rounded p-2'>Hapus</button>
-                                        </form>
+                                        </form> -->
                                 </td>
                             </tr>
                             <?php
@@ -196,4 +208,4 @@ $hariOptions = getEnumValues($conn, 'jadwal_periksa', 'hari');
             </div>
         </div>
 </body>
-</html>
+</html> 
