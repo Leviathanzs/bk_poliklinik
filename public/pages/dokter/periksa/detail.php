@@ -10,36 +10,36 @@ if($akses != 'dokter') {
     exit();
 }
 
-if (isset($_GET['id']) && is_numeric($_GET['id'])) {
-    $id = $_GET['id'];
+// if (isset($_GET['id']) && is_numeric($_GET['id'])) {
+//     $id = $_GET['id'];
 
-    // Prepare the SQL statement with INNER JOIN and ID filter
-    $sql = "SELECT a.nama AS nama_pasien, p.tgl_periksa, p.catatan, p.biaya_periksa, o.nama_obat, o.harga, o.kemasan
-    FROM daftar_poli AS d
-    INNER JOIN pasien AS a ON d.id_pasien = a.id
-    INNER JOIN periksa AS p ON d.id = p.id_daftar_poli
-    INNER JOIN detail_periksa AS dp ON p.id = dp.id_periksa
-    INNER JOIN obat AS o ON dp.id_obat = o.id
-    WHERE d.id = :id";
+//     // Prepare the SQL statement with INNER JOIN and ID filter
+//     $sql = "SELECT a.nama AS nama_pasien, p.tgl_periksa, p.catatan, p.biaya_periksa, o.nama_obat, o.harga, o.kemasan
+//     FROM daftar_poli AS d
+//     INNER JOIN pasien AS a ON d.id_pasien = a.id
+//     INNER JOIN periksa AS p ON d.id = p.id_daftar_poli
+//     INNER JOIN detail_periksa AS dp ON p.id = dp.id_periksa
+//     INNER JOIN obat AS o ON dp.id_obat = o.id
+//     WHERE d.id = :id";
 
-    // Prepare and execute the statement
-    $stmt = $conn->prepare($sql);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+//     // Prepare and execute the statement
+//     $stmt = $conn->prepare($sql);
+//     $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+//     $stmt->execute();
 
-    // Fetch the result
-    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+//     // Fetch the result
+//     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
   
-    // Process the result as needed
-    $nama_obat = []; // Initialize an array to store medication names
-    foreach ($result as $row) {
-        $nama_pasien = $row['nama_pasien'];
-        $tgl_periksa = $row['tgl_periksa'];
-        $catatan = $row['catatan'];
-        $biaya_periksa = $row['biaya_periksa'];
-        $nama_obat[] = $row; // Store each row (medication) in the array
-    }
-}
+//     // Process the result as needed
+//     $nama_obat = []; // Initialize an array to store medication names
+//     foreach ($result as $row) {
+//         $nama_pasien = $row['nama_pasien'];
+//         $tgl_periksa = $row['tgl_periksa'];
+//         $catatan = $row['catatan'];
+//         $biaya_periksa = $row['biaya_periksa'];
+//         $nama_obat[] = $row; // Store each row (medication) in the array
+//     }
+// }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $biaya_periksa = 150000;
@@ -125,6 +125,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <title>Poliklinik</title>
     <link href="../../../../src/styles.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .border {
             border: 1px solid black;
@@ -145,96 +146,86 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             border-color: #0E7490; /* Border color on hover */
         }
     </style>
-    <script>
-        function addSelect(event) {
-            // Get the selected value
-            const selectedValue = event.target.value;
-
-            // Get the container for the select elements
-            const container = document.getElementById('select-container');
-
-            // If "Choose an option" is selected, remove empty select elements
-            if (!selectedValue) {
-                // Find all select elements
-                const selects = container.getElementsByTagName('select');
-
-                // Remove the last select if it is empty and there are more than one select elements
-                if (selects.length > 1) {
-                    container.removeChild(container.lastChild);
-                }
-                return;
-            }
-
-            // Clone the first select element if a valid option is selected
-            const firstSelect = document.querySelector('select');
-            const newSelect = firstSelect.cloneNode(true);
-
-            // Add an event listener to the new select element
-            newSelect.onchange = function(event) {
-                addSelect(event);
-                updateTotalCost();
-            };
-
-            // Reset the value of the new select element
-            newSelect.value = '';
-
-            // Append the new select element to the container
-            container.appendChild(newSelect);
-        }
-
-        function updateTotalCost() {
-            var obatSelects = document.getElementsByName('options[]');
-            var totalCost = 0;
-            var biaya_periksa = 150000;
-            for (var i = 0; i < obatSelects.length; i++) {
-                if (obatSelects[i].value) {
-                    var parts = obatSelects[i].value.split('|');
-                    var obatPrice = parseFloat(parts[1]); // Get the price part
-                    if (!isNaN(obatPrice)) {
-                        totalCost += obatPrice; 
-                    }
-                }
-            }
-            // After the loop, add the additional biaya_periksa
-            totalCost += biaya_periksa;
-            document.getElementById('biaya').value = 'Rp' + totalCost.toFixed(2);
-        }
-    </script>
 </head>
-<body>
-<form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . '?id=' . $id; ?>" method="post" class="flex flex-col shadow-lg" style="padding: 50px;">
-        <input type="hidden" name="id" value="<?php echo $id; ?>">
-        <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Detail Periksa</h1>
-            <a href="../periksa.php">Kembali</a>
+<body class="bg-gray-100 p-10">
+    <div class="w-max mx-auto bg-white p-5 rounded-lg shadow-md">
+        <?php
+        if (isset($_GET['id']) && is_numeric($_GET['id'])) {
+            $id = $_GET['id'];
+
+            // Prepare the SQL statement with INNER JOIN and ID filter
+            $sql = "SELECT a.nama AS nama_pasien, a.alamat, p.tgl_periksa, p.catatan, p.biaya_periksa, o.nama_obat, o.harga, o.kemasan
+                    FROM daftar_poli AS d
+                    INNER JOIN pasien AS a ON d.id_pasien = a.id
+                    INNER JOIN periksa AS p ON d.id = p.id_daftar_poli
+                    INNER JOIN detail_periksa AS dp ON p.id = dp.id_periksa
+                    INNER JOIN obat AS o ON dp.id_obat = o.id
+                    WHERE d.id = :id";
+
+            // Prepare and execute the statement
+            $stmt = $conn->prepare($sql);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            // Fetch the result
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($result)) {
+                $nama_obat = [];
+                foreach ($result as $row) {
+                    $nama_pasien = $row['nama_pasien'];
+                    $tgl_periksa = $row['tgl_periksa'];
+                    $catatan = $row['catatan'];
+                    $alamat = $row['alamat'];
+                    $biaya_periksa = $row['biaya_periksa'];
+                    $nama_obat[] = $row; // Store each row (medication) in the array
+                }
+        ?>
+        <div class="text-center mb-5">
+            <h2 class="text-xl font-bold">Nota Pembayaran</h2>
+            <p class="text-gray-600">Nomor: <?php echo htmlspecialchars($id); ?></p>
         </div>
-        <br>
-            <div class="mb-4 flex flex-col">
-                <label for="pasien" class="block text-gray-700 font-bold mb-2 text-xl">Nama Pasien</label>
-                <input type="text" id="pasien" name="pasien" class="form-input rounded-md border border-blue-900 p-2" readonly value="<?php echo $nama_pasien ?>">
-            </div>
-            <div class="mb-4 flex flex-col">
-                <label for="tgl_periksa" class="block text-gray-700 font-bold mb-2 text-xl">Tanggal Periksa</label>
-                <input type="datetime-local" id="tgl_periksa" name="tgl_periksa" class="form-input rounded-md border border-blue-900 p-2" required value="<?php echo $tgl_periksa ?>">
-            </div>
-            <div class="mb-4 flex flex-col">
-                <label for="catatan" class="block text-gray-700 font-bold mb-2 text-xl">Catatan</label>
-                <input type="text" id="catatan" name="catatan" class="form-input rounded-md border border-blue-900 p-2" value="<?php echo $catatan ?>">
-            </div>
-            <label for="catatan" class="block text-gray-700 font-bold mb-2 text-xl">Obat</label>
-            <div class="mb-4 border">
-                <ul>
-                    <?php foreach ($nama_obat as $obat_info): ?>
-                        <li class="p-2">
-                            <?php echo $obat_info['nama_obat']; ?> - <?php echo $obat_info['kemasan']; ?> - Rp<?php echo $obat_info['harga']; ?>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-            <div class="mb-4 flex flex-col">
-                <label for="biaya" class="block text-gray-700 font-bold mb-2 text-xl">Biaya</label>
-                <input type="text" id="biaya" name="biaya" class="form-input rounded-md border border-blue-900 p-2" readonly value="<?php echo 'Rp.' . $biaya_periksa ?>">
-            </div>
-    </form>
+        <div class="mb-5">
+            <p><span class="font-bold">Tanggal:</span> <?php echo htmlspecialchars($tgl_periksa); ?></p>
+            <p><span class="font-bold">Nama Pasien:</span> <?php echo htmlspecialchars($nama_pasien); ?></p>
+            <p><span class="font-bold">Alamat:</span> <?php echo htmlspecialchars($alamat); ?></p>
+        </div>
+
+        <table class="min-w-full divide-y divide-gray-200 mb-5">
+            <thead>
+                <tr>
+                    <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Nama Obat</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Kemasan</th>
+                    <th class="px-4 py-2 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Harga</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <?php
+                foreach ($nama_obat as $obat) {
+                    echo '<tr>';
+                    echo '<td class="px-4 py-2">' . htmlspecialchars($obat['nama_obat']) . '</td>';
+                    echo '<td class="px-4 py-2">' . htmlspecialchars($obat['kemasan']) . '</td>';
+                    echo '<td class="px-4 py-2 text-right">Rp ' . number_format($obat['harga'], 0, ',', '.') . '</td>';
+                    echo '</tr>';
+                }
+                ?>
+            </tbody>
+        </table>
+        <div class="text-right mb-5">
+            <p class="text-xl font-bold"><span class="font-bold">Jasa Dokter:</span> Rp 150.000,00</p>
+            <p class="text-xl font-bold"><span class="font-bold">Total Periksa:</span> Rp <?php echo number_format($biaya_periksa, 0, ',', '.'); ?></p>
+        </div>
+        <div class="text-center">
+            <p class="text-gray-600 text-sm">Terima kasih atas kunjungan Anda!</p>
+        </div>
+        <?php
+            } else {
+                echo '<p class="text-center text-red-500">Data tidak ditemukan.</p>';
+            }
+        } else {
+            echo '<p class="text-center text-red-500">ID tidak valid.</p>';
+        }
+        ?>
+    </div>
 </body>
 </html>
